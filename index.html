@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department of Public Parks - Municipal Operations</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Leaflet.js Map Library & CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            bg: '#F3F6F4',
+                            bgDark: '#E5EDE8',
+                            card: '#FFFFFF',
+                            cardHover: '#FAFCFA',
+                            text: '#1E293B',
+                            textMuted: '#64748B',
+                            border: '#D8E2DC',
+                            borderLight: '#E2E8F0',
+                            
+                            sage: '#5B8C7D',
+                            sageLight: '#E8F3EE',
+                            sageDark: '#2C5E4F',
+                            
+                            sky: '#4A7BB0',
+                            skyLight: '#EDF4FF',
+                            skyDark: '#1D4ED8',
+                            
+                            lavender: '#9B72B0',
+                            lavenderLight: '#F7F2FA',
+                            lavenderDark: '#6B21A8',
+                            
+                            rose: '#E56B6B',
+                            roseLight: '#FFF0F0',
+                            roseDark: '#991B1B',
+                            
+                            amber: '#D9822B',
+                            amberLight: '#FFF8F0',
+                            amberDark: '#9A3412',
+                            
+                            primaryBtn: '#5B8C7D',
+                            primaryBtnHover: '#4A7568',
+                            primaryBtnText: '#FFFFFF'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* CSS Fallbacks and Structural Guarantees */
+        html, body {
+            background-color: #F3F6F4;
+            color: #1E293B;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #E5EDE8;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #B0C4B1;
+            border-radius: 4px;
+        }
+
+        .pastel-card {
+            background-color: #FFFFFF;
+            border: 1px solid #D8E2DC;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px -2px rgba(44, 94, 79, 0.05);
+        }
+
+        .custom-input {
+            background-color: #FFFFFF;
+            border: 1.5px solid #D8E2DC;
+            color: #1E293B;
+            font-weight: 600;
+            font-style: normal;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease;
+        }
+        .custom-input:focus {
+            outline: none;
+            border-color: #5B8C7D;
+            box-shadow: 0 0 0 3px rgba(91, 140, 125, 0.2);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #94A3B8 !important;
+            opacity: 0.45 !important;
+            font-style: italic !important;
+            font-weight: 400 !important;
+        }
+
+        /* Leaflet Map Heights */
+        #citizen-leaflet-map, 
+        #gardener-route-leaflet-map, 
+        #boss-leaflet-map {
+            height: 340px !important;
+            min-height: 340px !important;
+            width: 100% !important;
+            display: block !important;
+            position: relative !important;
+            z-index: 1 !important;
+            border-radius: 0.75rem;
+        }
+
+        .leaflet-container {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 0.75rem;
+            z-index: 1;
+        }
+
+        /* Body Scroll Lock */
+        body.overflow-hidden {
+            overflow: hidden !important;
+        }
+
+        #screen-role-select {
+            background-color: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-pastel-bg text-pastel-text">
+
+    <!-- MAIN WRAPPER -->
+    <div id="app-content" class="min-h-screen flex flex-col transition-all duration-300">
+        
+        <!-- HEADER -->
+        <header class="bg-white border-b border-pastel-border sticky top-0 z-40 px-4 py-3 shadow-sm">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-pastel-sageLight text-pastel-sage border border-pastel-sage/30 flex items-center justify-center font-black text-xl shadow-sm">
+                        <i class="fa-solid fa-tree"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-base sm:text-lg tracking-wide text-pastel-text">Department of Public Parks</h1>
+                        <p id="header-user-status" class="text-xs text-pastel-textMuted font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-user text-pastel-sage"></i>
+                            <span id="header-role-text">Select role</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="header-actions" class="flex items-center gap-2">
+                    <button onclick="showRoleModal()" type="button" class="px-3.5 py-1.5 rounded-xl border border-pastel-border bg-pastel-bg hover:bg-pastel-bgDark text-xs font-bold text-pastel-text transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-users-gear text-pastel-sage"></i>
+                        <span id="role-btn-label">Switch Role</span>
+                    </button>
+                </div>
+
+            </div>
+        </header>
+
+        <!-- TOAST NOTIFICATIONS -->
+        <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 relative">
+            
+            <!-- VIEW 1: CITIZEN PORTAL -->
+            <div id="view-citizen" class="hidden space-y-6">
+                
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white text-pastel-sage text-3xl font-black shadow-lg mb-2 border border-pastel-border">
+                        <i class="fa-solid fa-tree"></i>
+                    </div>
+                    <h2 class="text-3xl font-black tracking-tight text-pastel-text">Department of Public Parks</h2>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Citizen Form Card -->
+                    <div class="lg:col-span-7 space-y-5">
+                        <div class="pastel-card rounded-2xl p-5 border border-pastel-border space-y-4 shadow-sm">
+                            
+                            <div class="flex items-center justify-between border-b border-pastel-border pb-3">
+                                <h3 class="font-extrabold text-base text-pastel-text flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-plus text-pastel-sage"></i> Submit Public Incident
+                                </h3>
+                                <span class="text-[10px] text-pastel-textMuted font-bold">* Required fields</span>
+                            </div>
+
+                            <div id="citizen-error-banner" class="hidden bg-pastel-roseLight border-2 border-pastel-rose rounded-xl p-3 text-pastel-roseDark flex items-start gap-2.5">
+                                <i class="fa-solid fa-circle-xmark text-pastel-rose text-sm mt-0.5"></i>
+                                <div>
+                                    <strong class="font-bold text-xs block">Required Fields Missing:</strong>
+                                    <span id="citizen-error-text" class="text-xs">Please select a category, write a description, and upload evidence photo.</span>
+                                </div>
+                            </div>
+
+                            <form onsubmit="submitCitizenReport(event)" class="space-y-4 text-xs">
+                                
+                                <!-- Issue Category -->
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-bold text-pastel-text">Issue Category *</label>
+                                    <select id="cit-type" class="w-full custom-input p-2.5 rounded-xl text-xs font-semibold">
+                                        <option value="">-- Select Category --</option>
+                                        <option value="Overgrown Grass / Unclean Lawn">Overgrown Grass / Unclean Lawn</option>
+                                        <option value="Broken Bench / Playground Equipment">Broken Bench / Playground Equipment</option>
+                                        <option value="Fallen Tree / Dangerous Branch">Fallen Tree / Dangerous Branch</option>
+                                        <option value="Broken Irrigation / Water Leak">Broken Irrigation / Water Leak</option>
+                                        <option value="Vandalism / Trash Accumulation">Vandalism / Trash Accumulation</option>
+                                    </select>
+                                </div>
+
+                                <!-- Priority Level -->
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-bold text-pastel-text">Priority Level *</label>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <button type="button" onclick="setCitizenPriority('Low')" id="cit-pri-Low" class="p-2.5 rounded-xl border border-pastel-border text-center font-bold text-xs bg-pastel-bg text-pastel-text hover:bg-pastel-bgDark transition">
+                                            Low
+                                        </button>
+                                        <button type="button" onclick="setCitizenPriority('Medium')" id="cit-pri-Medium" class="p-2.5 rounded-xl border border-pastel-sky/50 text-center font-extrabold text-xs bg-pastel-skyLight text-pastel-skyDark shadow-sm">
+                                            Medium
+                                        </button>
+                                        <button type="button" onclick="setCitizenPriority('High')" id="cit-pri-High" class="p-2.5 rounded-xl border border-pastel-border text-center font-bold text-xs bg-pastel-bg text-pastel-text hover:bg-pastel-bgDark transition">
+                                            High
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Location & Map -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <label class="block text-xs font-bold text-pastel-text">Park Location / Pin Drop *</label>
+                                        <span id="cit-location-badge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-pastel-amberLight text-pastel-amberDark border border-pastel-amber/30">
+                                            Pin: 19.2433, -103.7250 (Colima)
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <i class="fa-solid fa-magnifying-glass-location absolute left-3 top-3 text-pastel-textMuted text-xs"></i>
+                                            <input type="text" id="cit-gmaps-link" value="" 
+                                                   placeholder="Paste Google Maps link, coordinates, or park name..." 
+                                                   onkeydown="if(event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); handleCitizenLocationInput(this.value); }"
+                                                   class="w-full custom-input pl-9 pr-3 py-2 rounded-xl text-xs font-medium">
+                                        </div>
+                                        <button type="button" onclick="handleCitizenLocationInput(document.getElementById('cit-gmaps-link').value)" 
+                                                class="px-3.5 py-2 rounded-xl bg-pastel-skyLight text-pastel-skyDark border border-pastel-sky/40 font-extrabold text-xs hover:bg-pastel-sky transition whitespace-nowrap">
+                                            <i class="fa-solid fa-location-dot mr-1"></i> Pin Location
+                                        </button>
+                                    </div>
+
+                                    <div id="cit-map-wrapper" class="w-full rounded-xl border border-pastel-border overflow-hidden relative shadow-inner">
+                                        <div id="citizen-leaflet-map"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-bold text-pastel-text">Issue Description *</label>
+                                    <textarea id="cit-desc" rows="3" placeholder="Describe the issue observed in the park..." class="w-full custom-input p-2.5 rounded-xl text-xs resize-none"></textarea>
+                                </div>
+
+                                <!-- Photo Upload -->
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-bold text-pastel-text">Photo Evidence *</label>
+                                    
+                                    <input type="file" id="cit-photo-file" accept="image/*" class="hidden" onchange="handleCitizenFileSelect(event)">
+
+                                    <div id="cit-photo-dropzone" 
+                                         onclick="document.getElementById('cit-photo-file').click()"
+                                         ondragover="handleCitizenDragOver(event)"
+                                         ondragleave="handleCitizenDragLeave(event)"
+                                         ondrop="handleCitizenFileDrop(event)"
+                                         class="border-2 border-dashed border-pastel-border rounded-xl p-5 text-center space-y-2 bg-pastel-bg hover:bg-pastel-bgDark cursor-pointer transition">
+                                        
+                                        <div id="cit-photo-preview-container" class="hidden relative inline-block">
+                                            <img id="cit-photo-preview-img" src="" alt="Photo Preview" class="w-36 h-24 object-cover rounded-lg border border-pastel-border shadow-md">
+                                            <button type="button" onclick="event.stopPropagation(); removeCitizenPhoto()" class="absolute -top-2 -right-2 bg-pastel-rose text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+
+                                        <div id="cit-photo-prompt" class="space-y-1">
+                                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-pastel-sage"></i>
+                                            <p class="text-xs font-extrabold text-pastel-text">Drag & drop photo here or click to browse</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full py-3 rounded-xl bg-pastel-primaryBtn text-white font-extrabold text-xs hover:bg-pastel-primaryBtnHover transition flex items-center justify-center gap-2 shadow-md">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    <span>Submit Public Report</span>
+                                </button>
+
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Live Status Tracker -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="pastel-card rounded-2xl p-5 border border-pastel-border space-y-4 shadow-sm">
+                            <div class="flex items-center justify-between border-b border-pastel-border pb-3">
+                                <h3 class="font-extrabold text-sm flex items-center gap-2 text-pastel-text">
+                                    <i class="fa-solid fa-list-check text-pastel-skyDark"></i> Public Submitted Reports
+                                </h3>
+                                <span id="cit-count-badge" class="px-2.5 py-0.5 rounded-full bg-pastel-skyLight text-pastel-skyDark border border-pastel-sky/30 text-[10px] font-bold">0 Submitted</span>
+                            </div>
+
+                            <div id="citizen-reports-list" class="space-y-3"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- VIEW 2: GARDENER PORTAL -->
+            <div id="view-gardener" class="hidden space-y-6">
+                
+                <div class="pastel-card rounded-2xl p-5 border border-pastel-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                    <div>
+                        <span id="gardener-team-badge" class="px-3 py-0.5 rounded-full bg-pastel-sageLight text-pastel-sageDark border border-pastel-sage/30 text-[10px] font-black uppercase tracking-wider">
+                            Team 1
+                        </span>
+                        <h2 id="gardener-welcome-title" class="text-2xl font-extrabold mt-1 text-pastel-text">Welcome, Gardener</h2>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button onclick="openGardenerIncidentModal()" type="button" class="px-3.5 py-2 rounded-xl bg-pastel-rose text-white font-extrabold text-xs hover:bg-pastel-roseDark transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Report Field Incident</span>
+                        </button>
+                        
+                        <nav class="flex items-center bg-pastel-bg rounded-xl p-1 border border-pastel-border text-xs font-semibold">
+                            <button id="g-tab-pool" type="button" onclick="switchGardenerTab('pool')" class="px-3.5 py-1.5 rounded-lg bg-pastel-primaryBtn text-white font-extrabold shadow-sm">
+                                <i class="fa-solid fa-inbox mr-1"></i> Unassigned Pool
+                            </button>
+                            <button id="g-tab-myroute" type="button" onclick="switchGardenerTab('myroute')" class="px-3.5 py-1.5 rounded-lg text-pastel-textMuted hover:text-pastel-text font-bold">
+                                <i class="fa-solid fa-route mr-1"></i> My Daily Route
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- GARDENER TAB 1: UNASSIGNED INCIDENT POOL -->
+                <div id="gardener-tab-pool" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-bold flex items-center gap-2 text-pastel-text">
+                            <i class="fa-solid fa-layer-group text-pastel-amber"></i> Unassigned Incident Pool
+                        </h3>
+                    </div>
+
+                    <div id="gardener-pool-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+
+                <!-- GARDENER TAB 2: MY DAILY ROUTE -->
+                <div id="gardener-tab-myroute" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div class="lg:col-span-7 space-y-4">
+                            <div class="flex items-center justify-between text-xs px-1">
+                                <span class="font-bold flex items-center gap-1.5 text-pastel-text">
+                                    <i class="fa-solid fa-list-check text-pastel-sage"></i> Assigned Route Tasks
+                                </span>
+                            </div>
+
+                            <div id="gardener-myroute-list" class="space-y-3"></div>
+                        </div>
+
+                        <div class="lg:col-span-5 space-y-4">
+                            <div class="pastel-card rounded-2xl p-4 border border-pastel-border space-y-3 sticky top-24 shadow-sm">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-extrabold text-sm flex items-center gap-2 text-pastel-text">
+                                        <i class="fa-solid fa-map-location-dot text-pastel-sage"></i> Route Map
+                                    </span>
+                                </div>
+
+                                <div class="w-full rounded-xl border border-pastel-border overflow-hidden relative shadow-inner">
+                                    <div id="gardener-route-leaflet-map"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- VIEW 3: GARDENER'S BOSS (SUPERVISOR) DASHBOARD -->
+            <div id="view-boss" class="hidden space-y-6">
+                
+                <div class="pastel-card rounded-2xl p-6 border border-pastel-border shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-pastel-border pb-4">
+                        <div>
+                            <span class="px-3 py-0.5 rounded-full bg-pastel-lavenderLight text-pastel-lavenderDark border border-pastel-lavender/30 text-[10px] font-black uppercase tracking-wider">
+                                Supervisor Command Center
+                            </span>
+                            <h2 id="boss-welcome-title" class="text-2xl font-black text-pastel-text mt-1">Supervisor Dashboard</h2>
+                        </div>
+
+                        <!-- Metrics Badges -->
+                        <div class="flex items-center gap-2 text-xs font-bold">
+                            <div class="px-3 py-2 rounded-xl bg-pastel-bg border border-pastel-border text-center">
+                                <span class="text-[10px] text-pastel-textMuted block font-normal">Total</span>
+                                <span id="boss-stat-total" class="text-sm font-black text-pastel-text">0</span>
+                            </div>
+                            <div class="px-3 py-2 rounded-xl bg-pastel-amberLight border border-pastel-amber/30 text-center">
+                                <span class="text-[10px] text-pastel-amberDark block font-normal">Unassigned</span>
+                                <span id="boss-stat-unassigned" class="text-sm font-black text-pastel-amberDark">0</span>
+                            </div>
+                            <div class="px-3 py-2 rounded-xl bg-pastel-skyLight border border-pastel-sky/30 text-center">
+                                <span class="text-[10px] text-pastel-skyDark block font-normal">In Progress</span>
+                                <span id="boss-stat-progress" class="text-sm font-black text-pastel-skyDark">0</span>
+                            </div>
+                            <div class="px-3 py-2 rounded-xl bg-pastel-sageLight border border-pastel-sage/30 text-center">
+                                <span class="text-[10px] text-pastel-sageDark block font-normal">Resolved</span>
+                                <span id="boss-stat-resolved" class="text-sm font-black text-pastel-sageDark">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Supervisor Overview Map -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <strong class="font-bold flex items-center gap-1.5 text-pastel-text">
+                                <i class="fa-solid fa-map-location-dot text-pastel-lavender"></i> Incidents Map Overview
+                            </strong>
+                        </div>
+
+                        <div class="w-full rounded-xl border border-pastel-border overflow-hidden relative shadow-inner">
+                            <div id="boss-leaflet-map"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incidents Dispatch Management Table -->
+                <div class="pastel-card rounded-2xl p-5 border border-pastel-border space-y-4 shadow-sm">
+                    
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-pastel-border pb-3">
+                        <h3 class="font-extrabold text-base text-pastel-text flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-pastel-lavender"></i> Incidents Log & Dispatch Control
+                        </h3>
+
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="text-pastel-textMuted font-medium">Filter Status:</span>
+                            <select id="boss-filter-status" onchange="renderBossDashboard()" class="custom-input p-1.5 rounded-lg text-xs font-semibold">
+                                <option value="ALL">All Incidents</option>
+                                <option value="Unassigned">Unassigned Only</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="boss-incidents-list" class="space-y-3"></div>
+
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- LOGIN / ROLE SELECTOR MODAL -->
+    <div id="screen-role-select" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-y-auto">
+        <div class="max-w-4xl w-full space-y-6 my-auto relative z-10">
+            
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white text-pastel-sage text-3xl font-black shadow-lg mb-2 border border-pastel-border">
+                    <i class="fa-solid fa-tree"></i>
+                </div>
+                <h2 class="text-3xl font-black tracking-tight text-pastel-text">Department of Public Parks</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+                
+                <!-- 1. CITIZEN CARD -->
+                <div class="pastel-card rounded-2xl p-5 border-2 border-pastel-border space-y-4 shadow-xl flex flex-col justify-between hover:border-pastel-sky transition">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-pastel-skyLight text-pastel-sky border border-pastel-sky/40 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-bullhorn"></i>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-pastel-skyLight text-pastel-skyDark border border-pastel-sky/30">Public User</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-pastel-text">Citizen Portal</h3>
+                        </div>
+                    </div>
+
+                    <button onclick="enterAsCitizen()" type="button" class="w-full py-2.5 rounded-xl border-2 border-pastel-sky text-pastel-skyDark font-extrabold text-xs hover:bg-pastel-skyLight transition flex items-center justify-center gap-2 shadow-sm">
+                        <span>Enter Citizen Portal</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- 2. GARDENER LOGIN CARD -->
+                <div class="pastel-card rounded-2xl p-5 border-2 border-pastel-border space-y-4 shadow-xl flex flex-col justify-between hover:border-pastel-sage transition">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-pastel-sageLight text-pastel-sage border border-pastel-sage/40 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-user-gear"></i>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-pastel-sageLight text-pastel-sageDark border border-pastel-sage/30">Field Staff</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-pastel-text">Gardener Portal</h3>
+                        </div>
+
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label class="block text-xs font-bold text-pastel-text mb-1">Full Name *</label>
+                                <input type="text" id="login-gardener-name" placeholder="e.g., Jammy" value="" class="w-full custom-input p-2.5 rounded-xl text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-pastel-text mb-1">Work Team (1 to 10) *</label>
+                                <select id="login-gardener-team" class="w-full custom-input p-2.5 rounded-xl text-xs font-semibold">
+                                    <option value="1">Team 1</option>
+                                    <option value="2">Team 2</option>
+                                    <option value="3">Team 3</option>
+                                    <option value="4">Team 4</option>
+                                    <option value="5">Team 5</option>
+                                    <option value="6">Team 6</option>
+                                    <option value="7">Team 7</option>
+                                    <option value="8">Team 8</option>
+                                    <option value="9">Team 9</option>
+                                    <option value="10">Team 10</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="loginAsGardener()" type="button" class="w-full py-2.5 rounded-xl bg-pastel-primaryBtn text-white font-extrabold text-xs hover:bg-pastel-primaryBtnHover transition flex items-center justify-center gap-2 shadow-md">
+                        <span>Login as Gardener</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- 3. GARDENER'S BOSS (SUPERVISOR) CARD -->
+                <div class="pastel-card rounded-2xl p-5 border-2 border-pastel-border space-y-4 shadow-xl flex flex-col justify-between hover:border-pastel-lavender transition">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-pastel-lavenderLight text-pastel-lavender border border-pastel-lavender/40 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-user-shield"></i>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-pastel-lavenderLight text-pastel-lavenderDark border border-pastel-lavender/30">Supervisor</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-pastel-text">Gardener's Boss</h3>
+                        </div>
+
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label class="block text-xs font-bold text-pastel-text mb-1">Supervisor Name *</label>
+                                <input type="text" id="login-boss-name" placeholder="e.g., Chief Carlos" value="" class="w-full custom-input p-2.5 rounded-xl text-xs">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="loginAsBoss()" type="button" class="w-full py-2.5 rounded-xl bg-pastel-lavender text-white font-extrabold text-xs hover:bg-pastel-lavenderDark transition flex items-center justify-center gap-2 shadow-md">
+                        <span>Login as Supervisor</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL: GARDENER FIELD OPERATIONAL INCIDENT -->
+    <div id="modal-gardener-incident" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 hidden">
+        <div class="pastel-card max-w-lg w-full rounded-2xl border border-pastel-border shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            
+            <div class="p-4 border-b border-pastel-border flex items-center justify-between bg-pastel-bg">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-pastel-roseLight text-pastel-rose border border-pastel-rose/40 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-base text-pastel-text">Field Operational Incident</h3>
+                    </div>
+                </div>
+                <button onclick="closeGardenerIncidentModal()" type="button" class="w-8 h-8 rounded-lg border border-pastel-border flex items-center justify-center hover:bg-pastel-bgDark text-pastel-text text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+                
+                <div id="g-incident-error-banner" class="hidden bg-pastel-roseLight border-2 border-pastel-rose rounded-xl p-3 text-pastel-roseDark flex items-start gap-2.5">
+                    <i class="fa-solid fa-circle-xmark text-pastel-rose text-sm mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold text-xs block">Required Fields Missing:</strong>
+                        <span id="g-incident-error-text" class="text-xs">Please complete all highlighted fields.</span>
+                    </div>
+                </div>
+
+                <!-- Incident Category -->
+                <div class="space-y-1.5">
+                    <label class="font-bold block text-pastel-text">Category *</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" id="g-cat-equipment" onclick="setGardenerIncidentCategory('equipment')" class="p-2 rounded-xl border border-pastel-sage font-extrabold text-center text-[11px] bg-pastel-sageLight text-pastel-sageDark transition shadow-sm">
+                            <i class="fa-solid fa-screwdriver-wrench block text-sm mb-1"></i> Equipment
+                        </button>
+                        <button type="button" id="g-cat-blocker" onclick="setGardenerIncidentCategory('blocker')" class="p-2 rounded-xl border border-pastel-border font-bold text-center text-[11px] bg-pastel-bg text-pastel-text hover:bg-pastel-bgDark transition">
+                            <i class="fa-solid fa-road-barrier block text-sm mb-1"></i> Site Blocker
+                        </button>
+                        <button type="button" id="g-cat-other" onclick="setGardenerIncidentCategory('other')" class="p-2 rounded-xl border border-pastel-border font-bold text-center text-[11px] bg-pastel-bg text-pastel-text hover:bg-pastel-bgDark transition">
+                            <i class="fa-solid fa-ellipsis block text-sm mb-1"></i> Other
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Equipment Select / Custom Input -->
+                <div id="g-fields-equipment" class="space-y-1">
+                    <label class="font-bold block text-pastel-text">Machinery / Equipment *</label>
+                    <select id="g-equip-select" onchange="toggleGardenerCustomEquip()" class="w-full custom-input p-2.5 rounded-xl text-xs font-semibold">
+                        <option value="Heavy-duty Lawn Mower LM-882">Heavy-duty Mower LM-882</option>
+                        <option value="Brush Cutter BC-300">Brush Cutter BC-300</option>
+                        <option value="Leaf Blower B-400">Leaf Blower B-400</option>
+                        <option value="CUSTOM_NEW">Add / Change Machine...</option>
+                    </select>
+
+                    <div id="g-equip-custom-container" class="hidden mt-2">
+                        <input type="text" id="g-equip-custom-input" placeholder="Type new machine name..." value="" class="w-full custom-input p-2.5 rounded-xl text-xs font-semibold">
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="space-y-1">
+                    <label class="font-bold block text-pastel-text">Location / Site Name *</label>
+                    <input type="text" id="g-location-input" placeholder="e.g., Parque La Campana, Colima" value="" class="w-full custom-input p-2.5 rounded-xl text-xs font-semibold">
+                </div>
+
+                <!-- Description -->
+                <div class="space-y-1">
+                    <label class="font-bold block text-pastel-text">Detailed Description *</label>
+                    <textarea id="g-incident-desc" rows="3" placeholder="Describe the issue..." class="w-full custom-input p-2.5 rounded-xl text-xs resize-none"></textarea>
+                </div>
+
+                <!-- Photo Upload -->
+                <div class="space-y-1.5">
+                    <label class="font-bold block text-pastel-text">Evidence Photo *</label>
+                    <input type="file" id="g-photo-file" accept="image/*" class="hidden" onchange="handleGardenerFileSelect(event)">
+
+                    <div id="g-photo-dropzone" 
+                         onclick="document.getElementById('g-photo-file').click()"
+                         ondragover="handleGardenerDragOver(event)"
+                         ondragleave="handleGardenerDragLeave(event)"
+                         ondrop="handleGardenerFileDrop(event)"
+                         class="border-2 border-dashed border-pastel-border rounded-xl p-4 text-center bg-pastel-bg hover:bg-pastel-bgDark cursor-pointer transition">
+                        
+                        <div id="g-photo-preview-container" class="hidden relative inline-block">
+                            <img id="g-photo-preview-img" src="" alt="Preview" class="w-32 h-20 object-cover rounded-lg border border-pastel-border shadow">
+                            <button type="button" onclick="event.stopPropagation(); removeGardenerPhoto()" class="absolute -top-2 -right-2 bg-pastel-rose text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <div id="g-photo-prompt" class="space-y-1">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-pastel-sage"></i>
+                            <p class="text-xs font-bold text-pastel-text">Drag & drop photo here or click to browse</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="p-4 border-t border-pastel-border bg-pastel-bg flex items-center justify-end gap-2">
+                <button type="button" onclick="closeGardenerIncidentModal()" class="px-4 py-2 rounded-xl border border-pastel-border font-bold text-xs hover:bg-pastel-bgDark text-pastel-text">
+                    Cancel
+                </button>
+                <button type="button" onclick="submitGardenerIncident()" class="px-5 py-2 rounded-xl bg-pastel-primaryBtn text-white font-extrabold text-xs hover:bg-pastel-primaryBtnHover shadow-md flex items-center gap-1.5">
+                    <i class="fa-solid fa-paper-plane"></i> Submit Incident
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SCRIPT & REACTIVE APPLICATION LOGIC -->
+    <script>
+        // Centralized Reactive Application State
+        const appState = {
+            currentUser: {
+                role: null, // 'citizen', 'gardener', 'boss'
+                name: '',
+                team: 'Team 1'
+            },
+            
+            gardenerTab: 'pool',
+            gIncidentCategory: 'equipment',
+            gAttachedPhoto: null,
+
+            citizenPriority: 'Medium',
+            citizenParkLocation: '19.2433, -103.7250',
+            citizenPhoto: null,
+
+            incidents: []
+        };
+
+        // Leaflet Maps Instances
+        let citizenMap = null;
+        let citizenMarker = null;
+
+        let gardenerRouteMap = null;
+        let gardenerRouteMarkers = [];
+
+        let bossMap = null;
+        let bossMarkers = [];
+
+        const COLIMA_LAT = 19.2433;
+        const COLIMA_LNG = -103.7250;
+        const ESRI_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAllViews();
+            showRoleModal();
+        });
+
+        // --- MAP INITIALIZATION FUNCTIONS ---
+        function initCitizenMap() {
+            const container = document.getElementById('citizen-leaflet-map');
+            if (!container) return;
+
+            if (citizenMap) {
+                setTimeout(() => {
+                    citizenMap.invalidateSize();
+                }, 150);
+                return;
+            }
+
+            citizenMap = L.map('citizen-leaflet-map', {
+                center: [COLIMA_LAT, COLIMA_LNG],
+                zoom: 14,
+                zoomControl: true
+            });
+
+            L.tileLayer(ESRI_TILE_URL, {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                maxZoom: 18
+            }).addTo(citizenMap);
+
+            citizenMarker = L.marker([COLIMA_LAT, COLIMA_LNG], { draggable: true }).addTo(citizenMap);
+            citizenMarker.bindPopup("<b>Selected Incident Pin</b><br>Colima, Colima").openPopup();
+
+            // Click map to drop pin
+            citizenMap.on('click', (e) => {
+                const lat = e.latlng.lat.toFixed(4);
+                const lng = e.latlng.lng.toFixed(4);
+                citizenMarker.setLatLng(e.latlng);
+                appState.citizenParkLocation = `${lat}, ${lng}`;
+                document.getElementById('cit-location-badge').textContent = `Pin: ${lat}, ${lng} (Colima)`;
+            });
+
+            // Drag marker end
+            citizenMarker.on('dragend', (e) => {
+                const pos = citizenMarker.getLatLng();
+                const lat = pos.lat.toFixed(4);
+                const lng = pos.lng.toFixed(4);
+                appState.citizenParkLocation = `${lat}, ${lng}`;
+                document.getElementById('cit-location-badge').textContent = `Pin: ${lat}, ${lng} (Colima)`;
+            });
+
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    if (citizenMap) citizenMap.invalidateSize();
+                });
+            }, 150);
+        }
+
+        function initGardenerRouteMap() {
+            const container = document.getElementById('gardener-route-leaflet-map');
+            if (!container) return;
+
+            if (gardenerRouteMap) {
+                setTimeout(() => {
+                    gardenerRouteMap.invalidateSize();
+                    updateGardenerRouteMapMarkers();
+                }, 150);
+                return;
+            }
+
+            gardenerRouteMap = L.map('gardener-route-leaflet-map', {
+                center: [COLIMA_LAT, COLIMA_LNG],
+                zoom: 13
+            });
+
+            L.tileLayer(ESRI_TILE_URL, {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 18
+            }).addTo(gardenerRouteMap);
+
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    if (gardenerRouteMap) {
+                        gardenerRouteMap.invalidateSize();
+                        updateGardenerRouteMapMarkers();
+                    }
+                });
+            }, 150);
+        }
+
+        function updateGardenerRouteMapMarkers() {
+            if (!gardenerRouteMap) return;
+            
+            gardenerRouteMarkers.forEach(m => gardenerRouteMap.removeLayer(m));
+            gardenerRouteMarkers = [];
+
+            const myRoute = appState.incidents.filter(i => i.assignedTeam === appState.currentUser.team);
+            
+            myRoute.forEach(item => {
+                const coords = parseCoords(item.location) || [COLIMA_LAT, COLIMA_LNG];
+                const marker = L.marker(coords).addTo(gardenerRouteMap);
+                marker.bindPopup(`<b>${item.id}</b><br>${item.category}<br>Status: ${item.status}`);
+                gardenerRouteMarkers.push(marker);
+            });
+        }
+
+        function initBossMap() {
+            const container = document.getElementById('boss-leaflet-map');
+            if (!container) return;
+
+            if (bossMap) {
+                setTimeout(() => {
+                    bossMap.invalidateSize();
+                    updateBossMapMarkers();
+                }, 150);
+                return;
+            }
+
+            bossMap = L.map('boss-leaflet-map', {
+                center: [COLIMA_LAT, COLIMA_LNG],
+                zoom: 13
+            });
+
+            L.tileLayer(ESRI_TILE_URL, {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 18
+            }).addTo(bossMap);
+
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    if (bossMap) {
+                        bossMap.invalidateSize();
+                        updateBossMapMarkers();
+                    }
+                });
+            }, 150);
+        }
+
+        function updateBossMapMarkers() {
+            if (!bossMap) return;
+
+            bossMarkers.forEach(m => bossMap.removeLayer(m));
+            bossMarkers = [];
+
+            appState.incidents.forEach(item => {
+                const coords = parseCoords(item.location) || [COLIMA_LAT, COLIMA_LNG];
+                const marker = L.marker(coords).addTo(bossMap);
+                marker.bindPopup(`
+                    <div style="font-size:11px; font-family:Inter,sans-serif;">
+                        <strong>${item.id} (${item.category})</strong><br>
+                        Location: ${item.location}<br>
+                        Status: <b>${item.status}</b> | Team: ${item.assignedTeam || 'Unassigned'}
+                    </div>
+                `);
+                bossMarkers.push(marker);
+            });
+        }
+
+        // --- GOOGLE MAPS LINK & COORDINATE PARSER ---
+        function handleCitizenLocationInput(inputStr) {
+            if (!inputStr || !inputStr.trim()) return;
+
+            let lat = null;
+            let lng = null;
+            const str = inputStr.trim();
+
+            // Pattern 1: @19.2433,-103.7250
+            const atMatch = str.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (atMatch) {
+                lat = parseFloat(atMatch[1]);
+                lng = parseFloat(atMatch[2]);
+            }
+
+            // Pattern 2: q=19.2433,-103.7250 or ll=19.2433,-103.7250
+            if (lat === null || lng === null) {
+                const queryMatch = str.match(/(?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (queryMatch) {
+                    lat = parseFloat(queryMatch[1]);
+                    lng = parseFloat(queryMatch[2]);
+                }
+            }
+
+            // Pattern 3: !3d19.2433!4d-103.7250
+            if (lat === null || lng === null) {
+                const map3dMatch = str.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                if (map3dMatch) {
+                    lat = parseFloat(map3dMatch[1]);
+                    lng = parseFloat(map3dMatch[2]);
+                }
+            }
+
+            // Pattern 4: Plain coordinates "19.2433, -103.7250"
+            if (lat === null || lng === null) {
+                const plainMatch = str.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+                if (plainMatch) {
+                    lat = parseFloat(plainMatch[1]);
+                    lng = parseFloat(plainMatch[2]);
+                }
+            }
+
+            // Fallback: Local Colima Landmarks match
+            if (lat === null || lng === null) {
+                const lower = str.toLowerCase();
+                if (lower.includes('campana')) { lat = 19.2730; lng = -103.7380; }
+                else if (lower.includes('nunez') || lower.includes('núñez')) { lat = 19.2425; lng = -103.7265; }
+                else if (lower.includes('hidalgo')) { lat = 19.2395; lng = -103.7320; }
+                else if (lower.includes('galvan') || lower.includes('galván')) { lat = 19.2510; lng = -103.7150; }
+                else if (lower.includes('san fernando')) { lat = 19.2550; lng = -103.7180; }
+            }
+
+            if (lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                appState.citizenParkLocation = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                document.getElementById('cit-location-badge').textContent = `Pin: ${lat.toFixed(4)}, ${lng.toFixed(4)} (Colima)`;
+
+                if (citizenMap && citizenMarker) {
+                    const newLatLng = [lat, lng];
+                    citizenMarker.setLatLng(newLatLng);
+                    citizenMap.setView(newLatLng, 15);
+                    citizenMarker.openPopup();
+                }
+                showToast(`Location updated to [${lat.toFixed(4)}, ${lng.toFixed(4)}]`);
+            } else {
+                appState.citizenParkLocation = str;
+                document.getElementById('cit-location-badge').textContent = `Pinned: ${str}`;
+                showToast(`Location set: "${str}"`);
+            }
+        }
+
+        function parseCoords(locStr) {
+            if (!locStr) return null;
+            const match = locStr.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+            if (match) {
+                return [parseFloat(match[1]), parseFloat(match[2])];
+            }
+            return null;
+        }
+
+        // --- SESSION & ROLE MANAGEMENT ---
+        function showRoleModal() {
+            const modal = document.getElementById('screen-role-select');
+            const appContent = document.getElementById('app-content');
+            if (modal) modal.classList.remove('hidden');
+            if (appContent) {
+                appContent.classList.add('pointer-events-none', 'select-none', 'opacity-30', 'blur-[2px]');
+            }
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function hideRoleModal() {
+            const modal = document.getElementById('screen-role-select');
+            const appContent = document.getElementById('app-content');
+            if (modal) modal.classList.add('hidden');
+            if (appContent) {
+                appContent.classList.remove('pointer-events-none', 'select-none', 'opacity-30', 'blur-[2px]');
+            }
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function enterAsCitizen() {
+            appState.currentUser.role = 'citizen';
+            document.getElementById('header-role-text').textContent = 'Citizen Portal Mode';
+
+            hideRoleModal();
+            document.getElementById('view-gardener').classList.add('hidden');
+            document.getElementById('view-boss').classList.add('hidden');
+            document.getElementById('view-citizen').classList.remove('hidden');
+
+            setTimeout(() => {
+                initCitizenMap();
+            }, 150);
+
+            showToast("Entered Citizen Portal");
+        }
+
+        function loginAsGardener() {
+            const nameInput = document.getElementById('login-gardener-name').value.trim();
+            const teamVal = document.getElementById('login-gardener-team').value;
+
+            if (!nameInput || !teamVal) {
+                showToast("Enter Full Name and select Work Team.", "alert");
+                return;
+            }
+
+            const teamLabel = `Team ${teamVal}`;
+            appState.currentUser.role = 'gardener';
+            appState.currentUser.name = nameInput;
+            appState.currentUser.team = teamLabel;
+
+            document.getElementById('gardener-welcome-title').textContent = `Welcome, ${nameInput}`;
+            document.getElementById('gardener-team-badge').textContent = teamLabel;
+            document.getElementById('header-role-text').textContent = `${nameInput} • ${teamLabel}`;
+
+            hideRoleModal();
+            document.getElementById('view-citizen').classList.add('hidden');
+            document.getElementById('view-boss').classList.add('hidden');
+            document.getElementById('view-gardener').classList.remove('hidden');
+
+            renderAllViews();
+            showToast(`Logged in as Gardener: ${nameInput} (${teamLabel})`);
+        }
+
+        function loginAsBoss() {
+            const bossName = document.getElementById('login-boss-name').value.trim() || 'Chief Carlos';
+            appState.currentUser.role = 'boss';
+            appState.currentUser.name = bossName;
+
+            document.getElementById('boss-welcome-title').textContent = `Supervisor Dashboard (${bossName})`;
+            document.getElementById('header-role-text').textContent = `${bossName} • Supervisor`;
+
+            hideRoleModal();
+            document.getElementById('view-citizen').classList.add('hidden');
+            document.getElementById('view-gardener').classList.add('hidden');
+            document.getElementById('view-boss').classList.remove('hidden');
+
+            setTimeout(() => {
+                initBossMap();
+            }, 150);
+
+            renderAllViews();
+            showToast(`Logged in as Supervisor: ${bossName}`);
+        }
+
+        // --- GARDENER SUB-TABS ---
+        function switchGardenerTab(tab) {
+            appState.gardenerTab = tab;
+            const tabPool = document.getElementById('gardener-tab-pool');
+            const tabMyRoute = document.getElementById('gardener-tab-myroute');
+            const btnPool = document.getElementById('g-tab-pool');
+            const btnMyRoute = document.getElementById('g-tab-myroute');
+
+            if (tab === 'pool') {
+                tabPool.classList.remove('hidden');
+                tabMyRoute.classList.add('hidden');
+                btnPool.className = "px-3.5 py-1.5 rounded-lg bg-pastel-primaryBtn text-white font-extrabold shadow-sm";
+                btnMyRoute.className = "px-3.5 py-1.5 rounded-lg text-pastel-textMuted hover:text-pastel-text font-bold";
+            } else {
+                tabPool.classList.add('hidden');
+                tabMyRoute.classList.remove('hidden');
+                btnMyRoute.className = "px-3.5 py-1.5 rounded-lg bg-pastel-primaryBtn text-white font-extrabold shadow-sm";
+                btnPool.className = "px-3.5 py-1.5 rounded-lg text-pastel-textMuted hover:text-pastel-text font-bold";
+
+                setTimeout(() => {
+                    initGardenerRouteMap();
+                }, 150);
+            }
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function renderAllViews() {
+            renderCitizenReports();
+            renderGardenerPool();
+            renderGardenerMyRoute();
+            renderBossDashboard();
+        }
+
+        function renderCitizenReports() {
+            const list = document.getElementById('citizen-reports-list');
+            const badge = document.getElementById('cit-count-badge');
+            if (!list) return;
+
+            const citReports = appState.incidents.filter(i => i.source === 'Citizen');
+            if (badge) badge.textContent = `${citReports.length} Submitted`;
+            list.innerHTML = '';
+
+            if (citReports.length === 0) {
+                list.innerHTML = `
+                    <div class="p-6 text-center border border-dashed border-pastel-border rounded-xl text-pastel-textMuted text-xs">
+                        <i class="fa-solid fa-inbox text-2xl mb-2 text-pastel-sage"></i>
+                        <p class="font-bold">No public reports filed yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            citReports.forEach(rep => {
+                let badgeColor = "bg-pastel-amberLight text-pastel-amberDark border-pastel-amber/30";
+                if (rep.status === 'In Progress') badgeColor = "bg-pastel-skyLight text-pastel-skyDark border-pastel-sky/30";
+                if (rep.status === 'Resolved') badgeColor = "bg-pastel-sageLight text-pastel-sageDark border-pastel-sage/30";
+
+                const cardHtml = `
+                    <div class="pastel-card p-3.5 rounded-xl border border-pastel-border space-y-2 shadow-sm text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-extrabold text-pastel-skyDark">${rep.id} • ${rep.category}</span>
+                            <span class="text-[10px] text-pastel-textMuted">${rep.time}</span>
+                        </div>
+                        <p class="font-bold text-pastel-text"><i class="fa-solid fa-location-dot text-pastel-sage"></i> ${rep.location}</p>
+                        <p class="text-pastel-textMuted text-[11px]">${rep.description}</p>
+                        ${rep.photo ? `<img src="${rep.photo}" class="w-20 h-14 object-cover rounded-lg border border-pastel-border shadow-sm" alt="Evidence">` : ''}
+                        <div class="pt-2 border-t border-pastel-border flex items-center justify-between text-[10px]">
+                            <span class="px-2 py-0.5 rounded-full font-bold border ${badgeColor}">${rep.status} ${rep.assignedTeam ? `(${rep.assignedTeam})` : ''}</span>
+                            <span class="font-bold text-pastel-amberDark px-2 py-0.5 rounded bg-pastel-amberLight border border-pastel-amber/30">${rep.priority} Priority</span>
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += cardHtml;
+            });
+        }
+
+        function renderGardenerPool() {
+            const list = document.getElementById('gardener-pool-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            const unassignedList = appState.incidents.filter(i => !i.assignedTeam && i.status !== 'Resolved');
+
+            if (unassignedList.length === 0) {
+                list.innerHTML = `
+                    <div class="col-span-full p-8 text-center border border-dashed border-pastel-border rounded-xl bg-pastel-card text-pastel-textMuted text-xs">
+                        <i class="fa-solid fa-circle-check text-3xl mb-2 text-pastel-sage"></i>
+                        <p class="font-bold text-sm text-pastel-text">Unassigned Pool Empty</p>
+                    </div>
+                `;
+                return;
+            }
+
+            unassignedList.forEach(item => {
+                let priBadge = "bg-pastel-bg text-pastel-textMuted border-pastel-border";
+                if (item.priority === 'High') priBadge = "bg-pastel-roseLight text-pastel-roseDark border-pastel-rose/40";
+                if (item.priority === 'Medium') priBadge = "bg-pastel-amberLight text-pastel-amberDark border-pastel-amber/40";
+
+                const cardHtml = `
+                    <div class="pastel-card p-4 rounded-xl border border-pastel-border space-y-3 shadow-sm flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold text-pastel-text">${item.id} • ${item.category}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${priBadge}">${item.priority} Priority</span>
+                            </div>
+                            <p class="text-xs font-bold text-pastel-text"><i class="fa-solid fa-location-dot text-pastel-sage"></i> ${item.location}</p>
+                            <p class="text-xs text-pastel-textMuted">${item.description}</p>
+                            ${item.photo ? `<img src="${item.photo}" class="w-20 h-14 object-cover rounded-lg border border-pastel-border" alt="Evidence">` : ''}
+                        </div>
+
+                        <button onclick="claimIncidentForMyTeam('${item.id}')" type="button" class="w-full py-2 rounded-xl bg-pastel-primaryBtn text-white font-extrabold text-xs hover:bg-pastel-primaryBtnHover transition shadow-sm flex items-center justify-center gap-1.5 mt-2">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>Claim for ${appState.currentUser.team}</span>
+                        </button>
+                    </div>
+                `;
+                list.innerHTML += cardHtml;
+            });
+        }
+
+        function claimIncidentForMyTeam(id) {
+            const item = appState.incidents.find(i => i.id === id);
+            if (item) {
+                item.assignedTeam = appState.currentUser.team;
+                item.status = 'In Progress';
+                renderAllViews();
+                showToast(`Claimed ${item.id} for ${appState.currentUser.team}`);
+            }
+        }
+
+        function renderGardenerMyRoute() {
+            const list = document.getElementById('gardener-myroute-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            const myRoute = appState.incidents.filter(i => i.assignedTeam === appState.currentUser.team);
+
+            if (myRoute.length === 0) {
+                list.innerHTML = `
+                    <div class="p-8 text-center border border-dashed border-pastel-border rounded-xl bg-pastel-card text-pastel-textMuted text-xs">
+                        <i class="fa-solid fa-route text-3xl mb-2 text-pastel-sage"></i>
+                        <p class="font-bold text-sm text-pastel-text">No Tasks Assigned to ${appState.currentUser.team}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            myRoute.forEach(item => {
+                let statusBadge = `<span class="px-2.5 py-0.5 rounded-full bg-pastel-skyLight text-pastel-skyDark border border-pastel-sky/30 font-bold text-[10px]">In Progress</span>`;
+                if (item.status === 'Resolved') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full bg-pastel-sageLight text-pastel-sageDark border border-pastel-sage/30 font-bold text-[10px]"><i class="fa-solid fa-check"></i> Resolved</span>`;
+                }
+
+                const cardHtml = `
+                    <div class="pastel-card rounded-xl p-4 border border-pastel-border space-y-3 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-pastel-border pb-2">
+                            <div>
+                                <h4 class="font-extrabold text-xs text-pastel-text">${item.id} • ${item.title || item.category}</h4>
+                                <p class="text-[10px] text-pastel-textMuted"><i class="fa-solid fa-location-dot text-pastel-sage"></i> ${item.location}</p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+
+                        <p class="text-xs text-pastel-textMuted">${item.description}</p>
+                        ${item.equipment ? `<p class="text-[11px] font-bold text-pastel-sageDark"><i class="fa-solid fa-screwdriver-wrench"></i> Machine: ${item.equipment}</p>` : ''}
+
+                        <div class="pt-1 flex items-center gap-2">
+                            ${item.status !== 'Resolved' ? `
+                                <button onclick="markIncidentResolved('${item.id}')" type="button" class="w-full py-2 rounded-xl bg-pastel-primaryBtn text-white hover:bg-pastel-primaryBtnHover text-xs font-extrabold transition flex items-center justify-center gap-1 shadow-sm">
+                                    <i class="fa-solid fa-check-circle"></i> Mark Task Completed
+                                </button>
+                            ` : `
+                                <button disabled type="button" class="w-full py-2 rounded-xl bg-pastel-sageLight text-pastel-sageDark font-bold text-xs flex items-center justify-center gap-1 border border-pastel-sage/30">
+                                    <i class="fa-solid fa-circle-check"></i> Completed
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += cardHtml;
+            });
+
+            updateGardenerRouteMapMarkers();
+        }
+
+        function markIncidentResolved(id) {
+            const item = appState.incidents.find(i => i.id === id);
+            if (item) {
+                item.status = 'Resolved';
+                renderAllViews();
+                showToast(`Marked ${item.id} as Resolved`);
+            }
+        }
+
+        function renderBossDashboard() {
+            const list = document.getElementById('boss-incidents-list');
+            if (!list) return;
+
+            const total = appState.incidents.length;
+            const unassigned = appState.incidents.filter(i => !i.assignedTeam && i.status !== 'Resolved').length;
+            const progress = appState.incidents.filter(i => i.status === 'In Progress').length;
+            const resolved = appState.incidents.filter(i => i.status === 'Resolved').length;
+
+            document.getElementById('boss-stat-total').textContent = total;
+            document.getElementById('boss-stat-unassigned').textContent = unassigned;
+            document.getElementById('boss-stat-progress').textContent = progress;
+            document.getElementById('boss-stat-resolved').textContent = resolved;
+
+            const filterVal = document.getElementById('boss-filter-status').value;
+            let filtered = appState.incidents;
+            if (filterVal === 'Unassigned') filtered = appState.incidents.filter(i => !i.assignedTeam && i.status !== 'Resolved');
+            if (filterVal === 'In Progress') filtered = appState.incidents.filter(i => i.status === 'In Progress');
+            if (filterVal === 'Resolved') filtered = appState.incidents.filter(i => i.status === 'Resolved');
+
+            list.innerHTML = '';
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="p-8 text-center border border-dashed border-pastel-border rounded-xl bg-pastel-card text-pastel-textMuted text-xs">
+                        <i class="fa-solid fa-clipboard-check text-3xl mb-2 text-pastel-lavender"></i>
+                        <p class="font-bold text-sm text-pastel-text">No incidents match filter</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(item => {
+                let priBadge = "bg-pastel-bg text-pastel-textMuted border-pastel-border";
+                if (item.priority === 'High') priBadge = "bg-pastel-roseLight text-pastel-roseDark border-pastel-rose/40";
+                if (item.priority === 'Medium') priBadge = "bg-pastel-amberLight text-pastel-amberDark border-pastel-amber/40";
+
+                const cardHtml = `
+                    <div class="pastel-card p-4 rounded-xl border border-pastel-border space-y-3 shadow-sm text-xs">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-pastel-border pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-sm text-pastel-text">${item.id}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${priBadge}">${item.priority} Priority</span>
+                                <span class="px-2 py-0.5 rounded-full bg-pastel-lavenderLight text-pastel-lavenderDark border border-pastel-lavender/30 text-[10px] font-bold">Source: ${item.source}</span>
+                            </div>
+                            <span class="text-[10px] text-pastel-textMuted">${item.time}</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                            <div class="md:col-span-7 space-y-1">
+                                <h4 class="font-extrabold text-pastel-text">${item.category}</h4>
+                                <p class="text-pastel-textMuted"><i class="fa-solid fa-location-dot text-pastel-sage"></i> ${item.location}</p>
+                                <p class="text-pastel-textMuted text-[11px]">${item.description}</p>
+                                ${item.equipment ? `<p class="font-bold text-pastel-sageDark"><i class="fa-solid fa-screwdriver-wrench"></i> Machine: ${item.equipment}</p>` : ''}
+                            </div>
+
+                            <div class="md:col-span-5 space-y-2 bg-pastel-bg p-3 rounded-xl border border-pastel-border">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-pastel-textMuted uppercase mb-1">Assign Work Team</label>
+                                    <select onchange="bossAssignTeam('${item.id}', this.value)" class="w-full custom-input p-1.5 rounded-lg text-xs font-bold">
+                                        <option value="" ${!item.assignedTeam ? 'selected' : ''}>-- Unassigned --</option>
+                                        <option value="Team 1" ${item.assignedTeam === 'Team 1' ? 'selected' : ''}>Team 1</option>
+                                        <option value="Team 2" ${item.assignedTeam === 'Team 2' ? 'selected' : ''}>Team 2</option>
+                                        <option value="Team 3" ${item.assignedTeam === 'Team 3' ? 'selected' : ''}>Team 3</option>
+                                        <option value="Team 4" ${item.assignedTeam === 'Team 4' ? 'selected' : ''}>Team 4</option>
+                                        <option value="Team 5" ${item.assignedTeam === 'Team 5' ? 'selected' : ''}>Team 5</option>
+                                        <option value="Team 6" ${item.assignedTeam === 'Team 6' ? 'selected' : ''}>Team 6</option>
+                                        <option value="Team 7" ${item.assignedTeam === 'Team 7' ? 'selected' : ''}>Team 7</option>
+                                        <option value="Team 8" ${item.assignedTeam === 'Team 8' ? 'selected' : ''}>Team 8</option>
+                                        <option value="Team 9" ${item.assignedTeam === 'Team 9' ? 'selected' : ''}>Team 9</option>
+                                        <option value="Team 10" ${item.assignedTeam === 'Team 10' ? 'selected' : ''}>Team 10</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-bold text-pastel-textMuted uppercase mb-1">Status Control</label>
+                                    <select onchange="bossUpdateStatus('${item.id}', this.value)" class="w-full custom-input p-1.5 rounded-lg text-xs font-bold">
+                                        <option value="Pending" ${item.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                        <option value="In Progress" ${item.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                        <option value="Resolved" ${item.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += cardHtml;
+            });
+
+            updateBossMapMarkers();
+        }
+
+        function bossAssignTeam(id, teamVal) {
+            const item = appState.incidents.find(i => i.id === id);
+            if (item) {
+                item.assignedTeam = teamVal || null;
+                if (teamVal && item.status === 'Pending') item.status = 'In Progress';
+                renderAllViews();
+                showToast(`Assigned ${item.id} to ${teamVal || 'Unassigned'}`);
+            }
+        }
+
+        function bossUpdateStatus(id, statusVal) {
+            const item = appState.incidents.find(i => i.id === id);
+            if (item) {
+                item.status = statusVal;
+                renderAllViews();
+                showToast(`Updated ${item.id} status to ${statusVal}`);
+            }
+        }
+
+        // --- CITIZEN SUBMISSION ---
+        function setCitizenPriority(pri) {
+            appState.citizenPriority = pri;
+            ['Low', 'Medium', 'High'].forEach(p => {
+                const btn = document.getElementById(`cit-pri-${p}`);
+                if (p === pri) {
+                    btn.className = "p-2.5 rounded-xl border border-pastel-sky/50 text-center font-extrabold text-xs bg-pastel-skyLight text-pastel-skyDark shadow-sm";
+                } else {
+                    btn.className = "p-2.5 rounded-xl border border-pastel-border text-center font-bold text-xs bg-pastel-bg text-pastel-text hover:bg-pastel-bgDark transition";
+                }
+            });
+        }
+
+        function handleCitizenDragOver(e) {
+            e.preventDefault();
+            document.getElementById('cit-photo-dropzone').classList.add('bg-pastel-bgDark');
+        }
+
+        function handleCitizenDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('cit-photo-dropzone').classList.remove('bg-pastel-bgDark');
+        }
+
+        function handleCitizenFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('cit-photo-dropzone').classList.remove('bg-pastel-bgDark');
+            const files = e.dataTransfer.files;
+            if (files && files[0]) processCitizenFile(files[0]);
+        }
+
+        function handleCitizenFileSelect(e) {
+            const files = e.target.files;
+            if (files && files[0]) processCitizenFile(files[0]);
+        }
+
+        function processCitizenFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast("Select a valid image file.", "alert");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                appState.citizenPhoto = evt.target.result;
+                document.getElementById('cit-photo-preview-img').src = evt.target.result;
+                document.getElementById('cit-photo-preview-container').classList.remove('hidden');
+                document.getElementById('cit-photo-prompt').classList.add('hidden');
+                document.getElementById('cit-photo-dropzone').classList.remove('border-pastel-rose');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCitizenPhoto() {
+            appState.citizenPhoto = null;
+            document.getElementById('cit-photo-preview-container').classList.add('hidden');
+            document.getElementById('cit-photo-prompt').classList.remove('hidden');
+            document.getElementById('cit-photo-file').value = '';
+        }
+
+        function submitCitizenReport(e) {
+            e.preventDefault();
+
+            const typeSelect = document.getElementById('cit-type');
+            const descInput = document.getElementById('cit-desc');
+            const dropzone = document.getElementById('cit-photo-dropzone');
+            const errorBanner = document.getElementById('citizen-error-banner');
+
+            let errors = [];
+
+            typeSelect.classList.remove('border-pastel-rose', 'border-2');
+            descInput.classList.remove('border-pastel-rose', 'border-2');
+            dropzone.classList.remove('border-pastel-rose', 'border-2');
+
+            if (!typeSelect.value) {
+                typeSelect.classList.add('border-pastel-rose', 'border-2');
+                errors.push("Category required.");
+            }
+
+            if (!descInput.value.trim()) {
+                descInput.classList.add('border-pastel-rose', 'border-2');
+                errors.push("Description required.");
+            }
+
+            if (!appState.citizenPhoto) {
+                dropzone.classList.add('border-pastel-rose', 'border-2');
+                errors.push("Photo required.");
+            }
+
+            if (errors.length > 0) {
+                document.getElementById('citizen-error-text').textContent = errors.join(' ');
+                errorBanner.classList.remove('hidden');
+                return;
+            }
+
+            errorBanner.classList.add('hidden');
+
+            const newReport = {
+                id: `CIT-${Math.floor(100 + Math.random() * 900)}`,
+                source: 'Citizen',
+                category: typeSelect.value,
+                title: typeSelect.value,
+                priority: appState.citizenPriority,
+                location: appState.citizenParkLocation,
+                description: descInput.value.trim(),
+                status: 'Pending',
+                assignedTeam: null,
+                photo: appState.citizenPhoto,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            appState.incidents.unshift(newReport);
+            renderAllViews();
+            showToast(`Report ${newReport.id} submitted!`);
+
+            typeSelect.value = '';
+            descInput.value = '';
+            document.getElementById('cit-gmaps-link').value = '';
+            removeCitizenPhoto();
+        }
+
+        // --- GARDENER OPERATIONAL FIELD INCIDENT ---
+        function openGardenerIncidentModal() {
+            document.getElementById('g-incident-error-banner').classList.add('hidden');
+            document.getElementById('modal-gardener-incident').classList.remove('hidden');
+        }
+
+        function closeGardenerIncidentModal() {
+            document.getElementById('modal-gardener-incident').classList.add('hidden');
+        }
+
+        function setGardenerIncidentCategory(cat) {
+            appState.gIncidentCategory = cat;
+            const btnEq = document.getElementById('g-cat-equipment');
+            const btnBl = document.getElementById('g-cat-blocker');
+            const btnOt = document.getElementById('g-cat-other');
+            const fieldsEq = document.getElementById('g-fields-equipment');
+
+            [btnEq, btnBl, btnOt].forEach(btn => {
+                btn.className = "p-2 rounded-xl border border-pastel-border font-bold text-center text-[11px] bg-pastel-bg text-pastel-text hover:bg-pastel-bgDark transition";
+            });
+
+            if (cat === 'equipment') {
+                btnEq.className = "p-2 rounded-xl border border-pastel-sage font-extrabold text-center text-[11px] bg-pastel-sageLight text-pastel-sageDark transition shadow-sm";
+                fieldsEq.classList.remove('hidden');
+            } else if (cat === 'blocker') {
+                btnBl.className = "p-2 rounded-xl border border-pastel-sage font-extrabold text-center text-[11px] bg-pastel-sageLight text-pastel-sageDark transition shadow-sm";
+                fieldsEq.classList.add('hidden');
+            } else {
+                btnOt.className = "p-2 rounded-xl border border-pastel-sage font-extrabold text-center text-[11px] bg-pastel-sageLight text-pastel-sageDark transition shadow-sm";
+                fieldsEq.classList.add('hidden');
+            }
+        }
+
+        function toggleGardenerCustomEquip() {
+            const sel = document.getElementById('g-equip-select');
+            const customContainer = document.getElementById('g-equip-custom-container');
+            if (sel.value === 'CUSTOM_NEW') {
+                customContainer.classList.remove('hidden');
+            } else {
+                customContainer.classList.add('hidden');
+            }
+        }
+
+        function handleGardenerDragOver(e) {
+            e.preventDefault();
+            document.getElementById('g-photo-dropzone').classList.add('bg-pastel-bgDark');
+        }
+
+        function handleGardenerDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('g-photo-dropzone').classList.remove('bg-pastel-bgDark');
+        }
+
+        function handleGardenerFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('g-photo-dropzone').classList.remove('bg-pastel-bgDark');
+            const files = e.dataTransfer.files;
+            if (files && files[0]) processGardenerFile(files[0]);
+        }
+
+        function handleGardenerFileSelect(e) {
+            const files = e.target.files;
+            if (files && files[0]) processGardenerFile(files[0]);
+        }
+
+        function processGardenerFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast("Select a valid image file.", "alert");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                appState.gAttachedPhoto = evt.target.result;
+                document.getElementById('g-photo-preview-img').src = evt.target.result;
+                document.getElementById('g-photo-preview-container').classList.remove('hidden');
+                document.getElementById('g-photo-prompt').classList.add('hidden');
+                document.getElementById('g-photo-dropzone').classList.remove('border-pastel-rose');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeGardenerPhoto() {
+            appState.gAttachedPhoto = null;
+            document.getElementById('g-photo-preview-container').classList.add('hidden');
+            document.getElementById('g-photo-prompt').classList.remove('hidden');
+            document.getElementById('g-photo-file').value = '';
+        }
+
+        function submitGardenerIncident() {
+            const errorBanner = document.getElementById('g-incident-error-banner');
+            const locInput = document.getElementById('g-location-input');
+            const descInput = document.getElementById('g-incident-desc');
+            const dropzone = document.getElementById('g-photo-dropzone');
+            
+            let errors = [];
+            locInput.classList.remove('border-pastel-rose', 'border-2');
+            descInput.classList.remove('border-pastel-rose', 'border-2');
+            dropzone.classList.remove('border-pastel-rose', 'border-2');
+
+            if (!locInput.value.trim()) {
+                locInput.classList.add('border-pastel-rose', 'border-2');
+                errors.push("Location required.");
+            }
+
+            if (!descInput.value.trim()) {
+                descInput.classList.add('border-pastel-rose', 'border-2');
+                errors.push("Description required.");
+            }
+
+            if (!appState.gAttachedPhoto) {
+                dropzone.classList.add('border-pastel-rose', 'border-2');
+                errors.push("Photo evidence required.");
+            }
+
+            if (errors.length > 0) {
+                document.getElementById('g-incident-error-text').textContent = errors.join(' ');
+                errorBanner.classList.remove('hidden');
+                return;
+            }
+
+            errorBanner.classList.add('hidden');
+
+            let equipName = null;
+            if (appState.gIncidentCategory === 'equipment') {
+                const sel = document.getElementById('g-equip-select').value;
+                if (sel === 'CUSTOM_NEW') {
+                    equipName = document.getElementById('g-equip-custom-input').value.trim() || 'Custom Equipment';
+                } else {
+                    equipName = sel;
+                }
+            }
+
+            const newIncident = {
+                id: `FLD-${Math.floor(100 + Math.random() * 900)}`,
+                source: `Gardener (${appState.currentUser.name})`,
+                category: appState.gIncidentCategory === 'equipment' ? 'Equipment Fault' : (appState.gIncidentCategory === 'blocker' ? 'Site Blocker' : 'Field Issue'),
+                title: appState.gIncidentCategory === 'equipment' ? `Equipment Breakdown: ${equipName}` : 'Site Obstacle',
+                priority: 'High',
+                location: locInput.value.trim(),
+                description: descInput.value.trim(),
+                equipment: equipName,
+                status: 'Pending',
+                assignedTeam: appState.currentUser.team,
+                photo: appState.gAttachedPhoto,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            appState.incidents.unshift(newIncident);
+            renderAllViews();
+            showToast("Field incident reported to Supervisor dispatch.");
+
+            closeGardenerIncidentModal();
+            locInput.value = '';
+            descInput.value = '';
+            removeGardenerPhoto();
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            
+            let bgClass = "bg-white border-pastel-border text-pastel-text";
+            if (type === 'alert') bgClass = "bg-pastel-roseLight border-pastel-rose text-pastel-roseDark";
+
+            toast.className = `p-3.5 rounded-xl border shadow-lg flex items-center justify-between text-xs pointer-events-auto ${bgClass}`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bell text-pastel-sage"></i>
+                    <span>${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" type="button" class="text-pastel-textMuted hover:text-pastel-text ml-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 3500);
+        }
+    </script>
+</body>
+</html>
